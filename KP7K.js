@@ -1,131 +1,155 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Video Player</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
+class VideoPlayer {
+    constructor(containerId, videoTitle = "Untitled Video") {
+        this.container = document.getElementById(containerId);
+        this.videoTitle = videoTitle;
+        this.loop = false;
 
-        .video-player-container {
-            background-color: #333;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-            width: 640px;
-            text-align: center;
-        }
+        // List of 40 supported formats
+        this.supportedFormats = [
+            'mp4', 'webm', 'ogg', 'mov', 'avi', 'wmv', 'flv', 'mkv',
+            'm4v', 'f4v', '3gp', 'mpeg', 'mpg', 'ts', 'vob', 'asf',
+            'divx', 'rm', 'swf', 'm2ts', 'hevc', 'avchd', 'xvid', 
+            'dvr-ms', 'rmvb', 'ogv', 'mxf', 'mts', '3g2', 'qt', 
+            'dat', 'dv', 'vro', 'mp2', 'mpv', 'vp6', 'viv', 
+            'nsv', 'rmf', 'braw'
+        ];
 
-        .video-display {
-            border-radius: 10px;
-        }
+        this.initPlayer();
+        this.addEventListeners();
+    }
 
-        .upload-button {
-            margin-top: 10px;
-            padding: 5px;
-        }
+    initPlayer() {
+        // Create video element
+        this.videoElement = document.createElement('video');
+        this.videoElement.controls = true;
+        this.container.appendChild(this.videoElement);
 
-        .progress-bar-container {
-            margin-top: 10px;
-            width: 100%;
-        }
+        // Create buttons for skip and loop
+        this.skipButton = this.createButton('Skip 10s');
+        this.loopButton = this.createButton('Loop: Off');
 
-        #progress-bar {
-            width: 100%;
-            height: 10px;
-            border-radius: 5px;
-        }
+        // Create upload input for video file
+        this.uploadInput = document.createElement('input');
+        this.uploadInput.type = 'file';
+        this.uploadInput.accept = this.supportedFormats.map(ext => `video/${ext}`).join(', ');
+        this.container.appendChild(this.uploadInput);
 
-        .controls {
-            margin-top: 10px;
-        }
+        // Create progress bar
+        this.progressBar = document.createElement('div');
+        this.progressBar.style.height = '5px';
+        this.progressBar.style.background = '#ddd';
+        this.container.appendChild(this.progressBar);
 
-        .controls button {
-            padding: 10px 15px;
-            margin: 5px;
-            background-color: #444;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
+        this.progress = document.createElement('div');
+        this.progress.style.height = '5px';
+        this.progress.style.background = '#3498db';
+        this.progress.style.width = '0%';
+        this.progressBar.appendChild(this.progress);
 
-        .controls button:hover {
-            background-color: #555;
-        }
-    </style>
-</head>
-<body>
-    <div class="video-player-container">
-        <video id="video" class="video-display" width="600" height="340" controls>
-            <source src="your-video.mp4" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-        <input type="file" id="upload-button" class="upload-button" accept="video/*" onchange="loadVideo(event)" />
-        
-        <div class="progress-bar-container">
-            <progress id="progress-bar" value="0" max="100"></progress>
-        </div>
-        
-        <div class="controls">
-            <button onclick="playPause()">Play/Pause</button>
-            <button onclick="skip(-10)">Rewind 10s</button>
-            <button onclick="skip(10)">Forward 10s</button>
-            <button onclick="loopVideo()">Loop</button>
-            <button onclick="togglePIP()">PIP Mode</button>
-        </div>
-    </div>
+        // Create upload status
+        this.uploadStatus = document.createElement('p');
+        this.container.appendChild(this.uploadStatus);
 
-    <script>
-        const video = document.getElementById('video');
-        const progressBar = document.getElementById('progress-bar');
+        // Create comment section
+        this.commentSection = document.createElement('div');
+        this.commentList = document.createElement('div');
+        this.commentSection.appendChild(this.commentList);
 
-        function playPause() {
-            if (video.paused) {
-                video.play();
-            } else {
-                video.pause();
-            }
-        }
+        this.usernameInput = this.createInput('text', 'Your name');
+        this.commentInput = this.createInput('text', 'Your comment');
+        this.commentButton = this.createButton('Post Comment');
 
-        function skip(seconds) {
-            video.currentTime += seconds;
-        }
+        this.container.appendChild(this.commentSection);
+    }
 
-        function loopVideo() {
-            video.loop = !video.loop;
-            alert(video.loop ? 'Loop enabled' : 'Loop disabled');
-        }
+    createButton(text) {
+        const button = document.createElement('button');
+        button.textContent = text;
+        this.container.appendChild(button);
+        return button;
+    }
 
-        function togglePIP() {
-            if (document.pictureInPictureElement) {
-                document.exitPictureInPicture();
-            } else {
-                video.requestPictureInPicture().catch(error => {
-                    console.error('PIP mode error:', error);
-                });
-            }
-        }
+    createInput(type, placeholder) {
+        const input = document.createElement('input');
+        input.type = type;
+        input.placeholder = placeholder;
+        this.container.appendChild(input);
+        return input;
+    }
 
-        video.addEventListener('timeupdate', () => {
-            const progress = (video.currentTime / video.duration) * 100;
-            progressBar.value = progress;
+    addEventListeners() {
+        // Skip 10 seconds
+        this.skipButton.addEventListener('click', () => {
+            this.videoElement.currentTime += 10;
         });
 
-        function loadVideo(event) {
+        // Toggle loop
+        this.loopButton.addEventListener('click', () => {
+            this.loop = !this.loop;
+            this.videoElement.loop = this.loop;
+            this.loopButton.textContent = `Loop: ${this.loop ? 'On' : 'Off'}`;
+        });
+
+        // Video upload and progress
+        this.uploadInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
-            const videoURL = URL.createObjectURL(file);
-            video.src = videoURL;
-        }
-    </script>
-</body>
-</html>
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+
+            if (this.isSupportedFormat(fileExtension)) {
+                const url = URL.createObjectURL(file);
+                this.videoElement.src = url;
+                this.videoTitle = file.name;
+                this.uploadStatus.textContent = 'Upload started...';
+
+                const reader = new FileReader();
+                reader.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percentLoaded = Math.round((e.loaded / e.total) * 100);
+                        this.progress.style.width = percentLoaded + '%';
+                        this.uploadStatus.textContent = `Upload ${percentLoaded}% complete`;
+                    }
+                };
+
+                reader.onloadend = () => {
+                    this.uploadStatus.textContent = 'Upload complete';
+                };
+
+                reader.readAsDataURL(file);
+            } else {
+                this.uploadStatus.textContent = 'Unsupported file format!';
+            }
+        });
+
+        // Post comments
+        this.commentButton.addEventListener('click', () => {
+            const username = this.usernameInput.value.trim();
+            const comment = this.commentInput.value.trim();
+
+            if (username && comment) {
+                const commentElement = document.createElement('div');
+                commentElement.innerHTML = `<strong>${username}:</strong> ${comment}`;
+                this.commentList.appendChild(commentElement);
+
+                // Clear input fields
+                this.usernameInput.value = '';
+                this.commentInput.value = '';
+            } else {
+                alert('Please enter both name and comment.');
+            }
+        });
+
+        // Track video playback progress
+        this.videoElement.addEventListener('timeupdate', () => {
+            const percentPlayed = (this.videoElement.currentTime / this.videoElement.duration) * 100;
+            this.progress.style.width = `${percentPlayed}%`;
+        });
+    }
+
+    isSupportedFormat(extension) {
+        return this.supportedFormats.includes(extension);
+    }
+}
+
+// Usage
+// Make sure the container with the id 'playerContainer' exists in your HTML
+const videoPlayer = new VideoPlayer('playerContainer', 'My Custom Video');
